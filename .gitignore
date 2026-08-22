@@ -1,0 +1,18 @@
+# Environments
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# Data Cache
+data/cache/*
+!data/cache/.gitkeep
+
+# Backtest Results
+backtest/results/*
+!backtest/results/.gitkeep

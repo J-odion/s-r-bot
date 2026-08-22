@@ -1,0 +1,7 @@
+MetaTrader5
+pandas
+numpy
+backtesting
+matplotlib
+python-dotenv
+pytest
