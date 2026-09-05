@@ -20,7 +20,8 @@ def generate_signal(data_dict, all_zones, config):
     current_price = df_m5.iloc[-1]['close']
     
     # 1. Trend Alignment
-    trend_state = get_aligned_trend(df_d1, df_w1, config)
+    trend_result = get_aligned_trend(df_d1, df_w1, config)
+    trend_state = trend_result["alignment"]
     if trend_state == "conflicted":
         return None # Avoid trading in conflicted trends (can be config driven)
         

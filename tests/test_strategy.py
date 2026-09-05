@@ -54,15 +54,18 @@ def test_trend_state_machine():
     
     # Because analyze_structure uses rolling windows (window=3), we need enough data
     # Let's just create a larger mock manually to ensure we have swings
+    dummy_prices = [1]*50
     df_long = pd.DataFrame({
-        "high": [1,2,3,4,3,2,1, 10,12,14,13,12,11, 20,22,24,23,22,21],
-        "low":  [0,1,2,3,2,1,0,  9,11,13,12,11,10, 19,21,23,22,21,20],
-        "close":[1,2,3,4,3,2,1, 10,12,14,13,12,11, 20,22,24,23,22,21]
+        "high": dummy_prices + [1,2,3,4,3,2,1, 10,12,14,13,12,11, 20,22,24,23,22,21],
+        "low":  dummy_prices + [0,1,2,3,2,1,0,  9,11,13,12,11,10, 19,21,23,22,21,20],
+        "close":dummy_prices + [1,2,3,4,3,2,1, 10,12,14,13,12,11, 20,22,24,23,22,21]
     })
     df_long['adx'] = 30
-    
+
     state = determine_trend_state(df_long, settings)
-    assert state == "active_bullish" # Should detect HH and HL sequences
+    assert state["state"] == "active_bullish" # Should detect HH and HL sequences
+    
+    strategy.trend.calculate_adx = original_calc
     
     # Restore
     strategy.trend.calculate_adx = original_calc

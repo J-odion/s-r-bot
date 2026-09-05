@@ -5,3 +5,4 @@ backtesting
 matplotlib
 python-dotenv
 pytest
+requests

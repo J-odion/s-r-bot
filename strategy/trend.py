@@ -76,49 +76,77 @@ def analyze_structure(df):
         "last_lh": last_highs[2] if bias == "bearish" else (last_highs[1] if bias == "terminating_bearish" else None)
     }
     
-def determine_trend_state(df, config):
-    """
-    Evaluates trend state and termination.
-    State machine: active -> terminated -> reversal_confirmed
-    """
+def _determine_trend_state_core(df, config):
+    """Core logic to evaluate the trend state string."""
     df = calculate_adx(df, config.ADX_PERIOD)
     current_adx = df.iloc[-1]['adx']
     
     if current_adx < config.ADX_THRESHOLD:
-         return "neutral" # Lacks strength
+         return "neutral"
          
     structure = analyze_structure(df)
     bias = structure["bias"]
     current_close = df.iloc[-1]['close']
     
+    state = "neutral"
     if bias == "bullish":
         if current_close < structure["last_hl"]:
-            return "terminated"
-        return "active_bullish" # Which is essentially reversal_confirmed if it just transitioned
-        
-    if bias == "bearish":
+            state = "terminated"
+        else:
+            state = "active_bullish"
+    elif bias == "bearish":
         if current_close > structure["last_lh"]:
-            return "terminated"
-        return "active_bearish" # Which is essentially reversal_confirmed if it just transitioned
-        
-    if bias == "terminating_bullish":
+            state = "terminated"
+        else:
+            state = "active_bearish"
+    elif bias == "terminating_bullish":
         if current_close < structure["last_hl"]:
-            return "terminated"
-            
-    if bias == "terminating_bearish":
+            state = "terminated"
+    elif bias == "terminating_bearish":
         if current_close > structure["last_lh"]:
-            return "terminated"
+            state = "terminated"
             
-    return "neutral"
+    return state
+
+def determine_trend_state(df, config):
+    """
+    Evaluates trend state and termination.
+    State machine: active -> terminated -> reversal_confirmed
+    Returns a dict with state and flags.
+    """
+    if len(df) < 50:
+        return {"state": "neutral", "reversal_just_confirmed": False}
+        
+    current_state = _determine_trend_state_core(df, config)
+    previous_state = _determine_trend_state_core(df.iloc[:-1], config)
+    
+    reversal_just_confirmed = False
+    
+    # Fix 1: Flag is only true if we just transitioned out of a terminated/terminating state
+    # into a new active state in the opposite direction (or from neutral/terminated to active)
+    terminating_states = ["terminated", "terminating_bearish", "terminating_bullish", "neutral"]
+    
+    if current_state == "active_bullish" and previous_state in terminating_states:
+        reversal_just_confirmed = True
+    elif current_state == "active_bearish" and previous_state in terminating_states:
+        reversal_just_confirmed = True
+            
+    return {"state": current_state, "reversal_just_confirmed": reversal_just_confirmed}
 
 def get_aligned_trend(df_daily, df_weekly, config):
     """Checks alignment between daily and weekly trend."""
-    daily_state = determine_trend_state(df_daily, config)
-    weekly_state = determine_trend_state(df_weekly, config)
+    daily_res = determine_trend_state(df_daily, config)
+    weekly_res = determine_trend_state(df_weekly, config)
+    
+    daily_state = daily_res["state"]
+    weekly_state = weekly_res["state"]
+    
+    # Check if either just confirmed a reversal
+    just_confirmed = daily_res["reversal_just_confirmed"] or weekly_res["reversal_just_confirmed"]
     
     if daily_state == "active_bullish" and weekly_state == "active_bullish":
-        return "aligned_bullish"
+        return {"alignment": "aligned_bullish", "reversal_just_confirmed": just_confirmed}
     elif daily_state == "active_bearish" and weekly_state == "active_bearish":
-        return "aligned_bearish"
+        return {"alignment": "aligned_bearish", "reversal_just_confirmed": just_confirmed}
     else:
-        return "conflicted"
+        return {"alignment": "conflicted", "reversal_just_confirmed": False}

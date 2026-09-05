@@ -22,8 +22,10 @@ TIMEFRAME_MAP = {
 def connect_mt5():
     """Initializes and connects to the MT5 terminal."""
     if not mt5.initialize():
-        print(f"initialize() failed, error code = {mt5.last_error()}")
-        return False
+        print("Standard initialize() failed, trying specific path...")
+        if not mt5.initialize(path=r"C:\Program Files\MetaTrader 5\terminal64.exe"):
+            print(f"initialize() failed, error code = {mt5.last_error()}")
+            return False
     
     login = os.getenv("MT5_LOGIN")
     password = os.getenv("MT5_PASSWORD")

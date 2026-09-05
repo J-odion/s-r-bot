@@ -83,8 +83,9 @@ class MT5Executor:
                     success = False
                     if fallback_sl_to_breakeven:
                         # Fallback: move SL to breakeven + buffer (for spread widening)
-                        # Assume buffer is roughly 10 points
-                        sl_price = pos.price_open + 10.0 if pos.type == mt5.ORDER_TYPE_BUY else pos.price_open - 10.0
+                        # We use the wider buffer from settings explicitly meant for this scenario
+                        wider_buffer = config.NEWS_FALLBACK_SL_BUFFER_POINTS
+                        sl_price = pos.price_open + wider_buffer if pos.type == mt5.ORDER_TYPE_BUY else pos.price_open - wider_buffer
                         modify_req = {
                             "action": mt5.TRADE_ACTION_SLTP,
                             "position": pos.ticket,

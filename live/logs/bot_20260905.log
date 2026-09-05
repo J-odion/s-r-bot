@@ -1,0 +1,20 @@
+2026-09-05 19:08:05,997 - ERROR - Failed to connect to MT5. Exiting.
+2026-09-05 19:22:00,059 - ERROR - Failed to connect to MT5. Exiting.
+2026-09-05 19:29:43,568 - ERROR - Failed to connect to MT5. Exiting.
+2026-09-05 19:39:35,864 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:39:51,742 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:40:07,630 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:40:23,526 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:40:39,387 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:40:55,292 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:41:11,537 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:41:27,599 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:41:44,033 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:41:59,944 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:42:15,957 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:42:31,866 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:42:47,858 - ERROR - Failed to fetch M5 data.
+2026-09-05 19:42:48,454 - INFO - Bot stopped by user.
+2026-09-05 19:47:13,250 - INFO - Starting XAUUSD Bot on XAUUSD (S/R + ICT Engines enabled)
+2026-09-05 19:55:52,743 - INFO - Bot stopped by user.
+2026-09-05 19:56:01,767 - INFO - Building setups... Scanning for S/R and ICT triggers...

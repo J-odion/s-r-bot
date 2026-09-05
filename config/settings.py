@@ -1,16 +1,23 @@
 # XAUUSDm Bot Configuration
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 # Symbol and Timeframes
-SYMBOL = "XAUUSDm"
+SYMBOL = "XAUUSD"
 ENTRY_TIMEFRAME = "M5"
 TREND_TIMEFRAMES = ["D1", "W1"]
 SR_TIMEFRAMES = ["M5", "M15", "H1", "H4", "D1", "W1", "MN1"] # Extended for more granular checking
 
 # Support & Resistance (S/R) Settings
 # Dictionary mapping tier to {"window": int, "tolerance": float}
+# Note on windows (Item 5): detect_swing_points uses a centered rolling window of size (2*window + 1).
+# Therefore, a "window" of 12 on MN1 equals 12 months before + 12 months after = 25 months total lookback.
+# Yearly uses a window of 24 on MN1 (48+ months lookback) to capture multi-year extremes.
 SR_TIER_SETTINGS = {
-    "Yearly":   {"window": 24, "tolerance": 0.0030}, # Derived from MN1, wide window
-    "MN1":      {"window": 12, "tolerance": 0.0025},
+    "Yearly":   {"window": 24, "tolerance": 0.0030}, # ~48-month lookback on MN1 data
+    "MN1":      {"window": 12, "tolerance": 0.0025}, # ~25-month lookback on MN1 data
     "W1":       {"window": 8,  "tolerance": 0.0020},
     "D1":       {"window": 5,  "tolerance": 0.0015},
     "Intraday": {"window": 20, "tolerance": 0.0005}  # M5/M15/H1/H4 mapped to this
@@ -37,10 +44,12 @@ SL_BUFFER_POINTS = 5.0       # Buffer beyond structural SL point
 BACKTEST_SPREAD_POINTS = 30  # e.g., 30 points = 3.0 pips
 
 # News Handling Settings
+NEWS_REACTION_ENABLED = False # Item 1 Option B: Disable news-confirmed entries until real API is connected
 NEWS_BLACKOUT_WINDOWS = [
     # {"day": 4, "start": "12:00", "end": "15:00"}, # Example Friday blackout
 ]
 NEWS_PRECLOSE_MINUTES = 10
+NEWS_FALLBACK_SL_BUFFER_POINTS = 15.0 # Wider buffer for fallback breakeven SL during news
 SPREAD_NORMALIZATION_FACTOR = 1.3
 NEWS_MIN_WAIT_SECONDS = 60
 NEWS_MAX_WAIT_MINUTES = 30
@@ -57,3 +66,7 @@ TIMEFRAME_MAP = {
     "W1": 16411,
     "MN1": 16412
 }
+
+import os
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
