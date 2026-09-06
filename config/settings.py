@@ -4,8 +4,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-# Symbol and Timeframes
-SYMBOL = "XAUUSD"
+# Symbols and Timeframes
+SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDCAD", "USDJPY", "NZDCHF"]
 ENTRY_TIMEFRAME = "M5"
 TREND_TIMEFRAMES = ["D1", "W1"]
 SR_TIMEFRAMES = ["M5", "M15", "H1", "H4", "D1", "W1", "MN1"] # Extended for more granular checking
@@ -20,7 +20,7 @@ SR_TIER_SETTINGS = {
     "MN1":      {"window": 12, "tolerance": 0.0025}, # ~25-month lookback on MN1 data
     "W1":       {"window": 8,  "tolerance": 0.0020},
     "D1":       {"window": 5,  "tolerance": 0.0015},
-    "Intraday": {"window": 20, "tolerance": 0.0005}  # M5/M15/H1/H4 mapped to this
+    "Intraday": {"window": 20, "tolerance": 0.0015}  # M5/M15/H1/H4 mapped to this
 }
 
 # Trend Settings

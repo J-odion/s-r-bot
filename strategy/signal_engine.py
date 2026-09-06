@@ -1,5 +1,5 @@
 from .sr_levels import get_next_target_zone
-from .trend import get_aligned_trend
+from .trend import get_regime_state
 from .liquidity_gaps import detect_price_gaps, detect_fvg
 from .liquidity_sweeps import detect_sweeps
 from .stop_loss import calculate_structural_sl
@@ -20,12 +20,27 @@ def generate_signal(data_dict, all_zones, config):
     current_price = df_m5.iloc[-1]['close']
     
     # 1. Trend Alignment
-    trend_result = get_aligned_trend(df_d1, df_w1, config)
-    trend_state = trend_result["alignment"]
-    if trend_state == "conflicted":
+    # Cache the trend state to avoid recomputing ADX millions of times
+    global _cached_trend_state
+    global _cached_trend_time
+    try:
+        last_d1_time = df_d1.index[-1] if not 'time' in df_d1.columns else df_d1.iloc[-1]['time']
+        if _cached_trend_time == last_d1_time:
+            trend_state = _cached_trend_state
+        else:
+            trend_result = get_regime_state(df_d1, config)
+            trend_state = trend_result["bias"]
+            _cached_trend_time = last_d1_time
+            _cached_trend_state = trend_state
+    except NameError:
+        _cached_trend_time = None
+        trend_result = get_regime_state(df_d1, config)
+        trend_state = trend_result["bias"]
+        
+    if trend_state == "neutral":
         return None # Avoid trading in conflicted trends (can be config driven)
         
-    trade_direction = 1 if trend_state == "aligned_bullish" else -1 if trend_state == "aligned_bearish" else 0
+    trade_direction = 1 if trend_state == "bullish" else -1 if trend_state == "bearish" else 0
     if trade_direction == 0:
         return None
         
@@ -40,9 +55,57 @@ def generate_signal(data_dict, all_zones, config):
     if not active_zone:
         return None # No entry if not reacting at a valid zone
         
-    # 3. Gaps/Sweeps (Optional Filters, currently just logging/scoring)
-    # This is a simplified check. A full implementation would deeply integrate these.
-    # For now, we'll just require being at a zone in the direction of the trend.
+    # Cooldown Check: 4 hours (14400 seconds)
+    global _zone_cooldowns
+    try:
+        _zone_cooldowns
+    except NameError:
+        _zone_cooldowns = {}
+        
+    zone_key = round(active_zone["level"], 3)
+    current_time = df_m5.index[-1] if not 'time' in df_m5.columns else df_m5.iloc[-1]['time']
+    
+    if zone_key in _zone_cooldowns:
+        time_since = (current_time - _zone_cooldowns[zone_key]).total_seconds()
+        if time_since < 4 * 3600:
+            return None # Cooldown active
+            
+    # Confirmation Candle Check
+    current = df_m5.iloc[-1]
+    prev = df_m5.iloc[-2]
+    
+    body = abs(current['open'] - current['close'])
+    range_total = current['high'] - current['low']
+    if range_total == 0:
+        return None
+        
+    body_fraction = body / range_total
+    
+    is_bullish_engulfing = (current['close'] > current['open'] and 
+                            prev['close'] < prev['open'] and
+                            current['close'] > prev['open'] and 
+                            current['open'] < prev['close'] and 
+                            body_fraction > 0.5)
+                            
+    is_bearish_engulfing = (current['close'] < current['open'] and 
+                            prev['close'] > prev['open'] and
+                            current['close'] < prev['open'] and 
+                            current['open'] > prev['close'] and 
+                            body_fraction > 0.5)
+                            
+    lower_wick = min(current['open'], current['close']) - current['low']
+    upper_wick = current['high'] - max(current['open'], current['close'])
+    
+    is_bullish_pinbar = (lower_wick > 2 * body) and (upper_wick < body)
+    is_bearish_pinbar = (upper_wick > 2 * body) and (lower_wick < body)
+    
+    if trade_direction == 1 and not (is_bullish_engulfing or is_bullish_pinbar):
+        return None
+    if trade_direction == -1 and not (is_bearish_engulfing or is_bearish_pinbar):
+        return None
+        
+    # Update cooldown
+    _zone_cooldowns[zone_key] = current_time
     
     # Calculate SL
     sl_price = calculate_structural_sl(df_m5, -1, trade_direction, config.SL_BUFFER_POINTS)
