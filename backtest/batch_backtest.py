@@ -9,63 +9,92 @@ from backtest.custom_engine import CustomBacktester, load_data
 import config.settings as config
 
 def run_batch_backtests():
+    print("==============================================")
+    print("      SINGLE-PAIR BATCH BACKTEST INITIALIZED")
+    print("==============================================\n")
+    
+    # Require user to select a symbol
+    print("Available Symbols:")
+    for idx, sym in enumerate(config.SYMBOLS, 1):
+        print(f"  {idx}. {sym}")
+        
+    while True:
+        try:
+            choice = input("\nSelect a symbol to backtest (enter number or symbol name): ").strip().upper()
+            if choice.isdigit():
+                choice_idx = int(choice) - 1
+                if 0 <= choice_idx < len(config.SYMBOLS):
+                    selected_symbol = config.SYMBOLS[choice_idx]
+                    break
+            elif choice in config.SYMBOLS:
+                selected_symbol = choice
+                break
+            print("Invalid selection. Please try again.")
+        except KeyboardInterrupt:
+            print("\nExiting.")
+            sys.exit(0)
+            
     start_time = time.time()
     
     all_ict_trades = []
     all_sr_trades = []
     all_scalp_trades = []
     
-    print("==============================================")
-    print("      MULTI-PAIR BATCH BACKTEST INITIALIZED")
-    print("==============================================\n")
+    symbol = selected_symbol
+    print(f"\n>>> PROCESSING SYMBOL: {symbol} <<<")
+    data = load_data(symbol)
     
-    for symbol in config.SYMBOLS:
-        print(f"\n>>> PROCESSING SYMBOL: {symbol} <<<")
-        data = load_data(symbol)
+    if "M5" not in data:
+        print(f"M5 data not found for {symbol}. Exiting.")
+        return
         
-        if "M5" not in data:
-            print(f"M5 data not found for {symbol}. Skipping.")
+    df_m5 = data["M5"]
+    total_candles = len(df_m5)
+    
+    if total_candles < 500:
+        print(f"Not enough data for {symbol}. Exiting.")
+        return
+        
+    print(f"Total M5 candles available: {total_candles} (Approx {total_candles / (12 * 24 * 20):.1f} months)")
+    
+    batch_size = 10000
+    num_batches = (total_candles // batch_size) + 1
+    
+    symbol_ict_trades = []
+    symbol_sr_trades = []
+    symbol_scalp_trades = []
+    
+    for batch_num in range(num_batches):
+        start_idx = batch_num * batch_size
+        end_idx = min(start_idx + batch_size, total_candles)
+        
+        if end_idx - start_idx < 500:
             continue
             
-        df_m5 = data["M5"]
-        total_candles = len(df_m5)
+        print(f"\n--- BATCH {batch_num + 1}/{num_batches} ({symbol}: Candles {start_idx} to {end_idx}) ---")
         
-        if total_candles < 500:
-            print(f"Not enough data for {symbol}. Skipping.")
-            continue
-            
-        print(f"Total M5 candles available: {total_candles} (Approx {total_candles / (12 * 24 * 20):.1f} months)")
+        tester = CustomBacktester(data, starting_balance=50.0)
         
-        batch_size = 10000
-        num_batches = (total_candles // batch_size) + 1
-        
-        symbol_ict_trades = []
-        symbol_sr_trades = []
-        symbol_scalp_trades = []
-        
-        for batch_num in range(num_batches):
-            start_idx = batch_num * batch_size
-            end_idx = min(start_idx + batch_size, total_candles)
-            
-            if end_idx - start_idx < 500:
-                continue
-                
-            print(f"\n--- BATCH {batch_num + 1}/{num_batches} ({symbol}: Candles {start_idx} to {end_idx}) ---")
-            
-            tester = CustomBacktester(data, starting_balance=50.0)
-            
-            def custom_run(self):
+        def custom_run(self):
                 df_m5 = self.data_dict["M5"]
-                # Adjust spread dynamically if needed, 30 points = 3.0 pips
-                spread = 30 / 100.0 if "XAU" in symbol else 0.00030
+                # Adjust spread dynamically if needed
+                # Using realistic Raw Spreads: Gold ~15 points, Forex ~1.0 pip
+                spread = 15 / 100.0 if "XAU" in symbol else 0.00010
                 if "JPY" in symbol:
-                    spread = 0.030
+                    spread = 0.010
                     
                 sr_candidate_signal = None
                 sr_candidate_time = None
                 self.last_scalp_time = None
                 
                 for i in range(start_idx, end_idx):
+                    
+                    # Clean Progress Reporting
+                    if i % 100 == 0:
+                        progress_pct = ((i - start_idx) / (end_idx - start_idx)) * 100
+                        current_trades = len(self.ict_trades) + len(self.sr_trades) + len(self.scalp_trades)
+                        print(f"\rProcessing candle {i}/{end_idx} ({progress_pct:.1f}%) - Trades taken: {current_trades}    ", end="", flush=True)
+                        
                     current_time = df_m5.index[i]
                     current_row = df_m5.iloc[i]
                     current_close = current_row['close']
@@ -231,9 +260,9 @@ def run_batch_backtests():
                                 sl_dist = 0.4 * m5_atr
                                 tp_dist = 0.8 * m5_atr
                                 
-                                # Cost-Awareness Gate: spread must be < 15% of stop distance
+                                # Cost-Awareness Gate: spread must be < 30% of stop distance
                                 spread_cost = spread / sl_dist if sl_dist > 0 else 1.0
-                                if spread_cost <= 0.15:
+                                if spread_cost <= 0.30:
                                     if scalp_dir == 'bullish':
                                         scalp_sl = scalp_entry - sl_dist
                                         scalp_tp = scalp_entry + tp_dist
@@ -264,7 +293,7 @@ def run_batch_backtests():
                             
                             # Cost-Awareness Gate
                             spread_cost = spread / sl_dist if sl_dist > 0 else 1.0
-                            if spread_cost <= 0.15:
+                            if spread_cost <= 0.30:
                                 sl = current_low - sl_dist if ict_signal == 1 else current_high + sl_dist
                                 tp = current_close + tp_dist if ict_signal == 1 else current_close - tp_dist
                                 entry_price = current_close + spread if ict_signal == 1 else current_close - spread
@@ -308,7 +337,7 @@ def run_batch_backtests():
                                     sl_dist = abs(entry_price - conf_signal["sl_price"])
                                     spread_cost = spread / sl_dist if sl_dist > 0 else 1.0
                                     
-                                    if spread_cost <= 0.15:
+                                    if spread_cost <= 0.30:
                                         self.active_sr_trade = {
                                             'time': current_time,
                                             'direction': dir_str,
@@ -327,20 +356,20 @@ def run_batch_backtests():
                                     sr_candidate_signal = new_signal
                                     sr_candidate_time = current_time
 
-            import types
-            tester.run = types.MethodType(custom_run, tester)
-            tester.run()
+        import types
+        tester.run = types.MethodType(custom_run, tester)
+        tester.run()
             
-            symbol_ict_trades.extend(tester.ict_trades)
-            symbol_sr_trades.extend(tester.sr_trades)
-            symbol_scalp_trades.extend(tester.scalp_trades)
+        print("") # Newline after the progress bar finishes
+        
+        symbol_ict_trades.extend(tester.ict_trades)
+        symbol_sr_trades.extend(tester.sr_trades)
+        symbol_scalp_trades.extend(tester.scalp_trades)
             
-        # We will NOT write a file per-symbol anymore. We will use the massive AdvancedReporter
-        # to generate ONE master report at the end that breaks everything down.
-        all_ict_trades.extend(symbol_ict_trades)
-        all_sr_trades.extend(symbol_sr_trades)
-        all_scalp_trades.extend(symbol_scalp_trades)
-            
+    all_ict_trades.extend(symbol_ict_trades)
+    all_sr_trades.extend(symbol_sr_trades)
+    all_scalp_trades.extend(symbol_scalp_trades)
+        
     # Final Reporting using the AdvancedReporter
     end_time = time.time()
     elapsed = str(timedelta(seconds=int(end_time - start_time)))

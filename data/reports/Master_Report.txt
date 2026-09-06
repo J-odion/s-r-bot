@@ -1,0 +1,54 @@
+=========================================================
+                 MASTER SYSTEM REPORT
+=========================================================
+Date Generated:   2026-09-06 21:18
+Symbols:          XAUUSD, EURUSD, GBPUSD, USDCAD, USDJPY, NZDCHF
+Timeframe:        M5 base, D1 regime filtering
+Parameters:       ATR-Normalized (ICT 1:10, Scalp 1:2)
+=========================================================
+
+--- 2. EXECUTIVE SUMMARY ---
+Net P/L:                  $2.10
+Total Trades:             2
+Independent Trades:       2
+Profit Factor:            4.48
+Max Drawdown:             $0.60
+Verdict:                  [CLEARED WITH MARGIN]
+
+--- 3. CORE PERFORMANCE METRICS ---
+Realized Win Rate:        50.00%
+Implied Breakeven WR:     18.24%
+Expectancy per Trade:     $1.05
+Profit Factor:            4.48
+Average Win / Loss:       $2.71 / -$0.60
+Largest Win / Loss:       $2.71 / -$0.60
+
+--- 4. RISK METRICS ---
+Max Drawdown ($):         $0.60
+Longest Losing Streak:    1 trades
+
+--- 5. SEGMENTED BREAKDOWNS (By Strategy) ---
+
+[ICT (Trending)]
+  Net Profit:      $2.10
+  Trades (Indep):  2 (2)
+  Win Rate vs BE:  50.0% vs 18.2%
+  Expectancy:      $1.05
+  Max Drawdown:    $0.60
+
+[S/R (Ranging)]
+  No trades.
+
+[Scalp (Aligned)]
+  No trades.
+
+--- 6. STATISTICAL VALIDITY ---
+Correlation Inflation:    1.00x (Total trades / Independent trades)
+  -> OK: Acceptable trade independence.
+
+
+=========================================================
+          TRADE LOG APPENDIX (All Trades)
+=========================================================
+001. 2025-12-19 16:45 | BULLISH | Entry: 4327.52 | SL: 4317.03 | TP: 4354.58 | Profit: +$2.71 | ID: ict_12191645
+002. 2026-07-02 15:05 | BEARISH | Entry: 4069.69 | SL: 4075.73 | TP: 4048.00 | Profit: -$0.60 | ID: ict_07021505
