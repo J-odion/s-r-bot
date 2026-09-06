@@ -27,48 +27,23 @@ def calculate_adx(df, period=14):
 
 def analyze_structure(df):
     """
-    Analyzes HH/HL or LH/LL structure to determine trend direction.
+    Analyzes trend bias using 20 and 50 period EMAs.
     """
-    window = 3 
-    highs = df['high'].rolling(window=2*window+1, center=True).max()
-    lows = df['low'].rolling(window=2*window+1, center=True).min()
-    
-    swing_highs = df[df['high'] == highs].copy()
-    swing_lows = df[df['low'] == lows].copy()
-    
-    if len(swing_highs) < 3 or len(swing_lows) < 3:
-         return {"bias": "neutral", "last_hl": None, "last_lh": None}
+    if len(df) < 50:
+         return {"bias": "neutral"}
          
-    last_highs = swing_highs.tail(3)['high'].tolist()
-    last_lows = swing_lows.tail(3)['low'].tolist()
+    ema20 = df['close'].ewm(span=20, adjust=False).mean()
+    ema50 = df['close'].ewm(span=50, adjust=False).mean()
     
-    is_hh1 = last_highs[1] > last_highs[0]
-    is_hl1 = last_lows[1] > last_lows[0]
+    current_ema20 = ema20.iloc[-1]
+    current_ema50 = ema50.iloc[-1]
     
-    is_hh2 = last_highs[2] > last_highs[1]
-    is_hl2 = last_lows[2] > last_lows[1]
-    
-    is_lh1 = last_highs[1] < last_highs[0]
-    is_ll1 = last_lows[1] < last_lows[0]
-    
-    is_lh2 = last_highs[2] < last_highs[1]
-    is_ll2 = last_lows[2] < last_lows[1]
-    
-    bias = "neutral"
-    if is_hh2 and is_hl2:
-        bias = "bullish"
-    elif is_lh2 and is_ll2:
-        bias = "bearish"
-    elif is_hh1 and is_hl1:
-        bias = "terminating_bullish" 
-    elif is_lh1 and is_ll1:
-        bias = "terminating_bearish" 
-        
-    return {
-        "bias": bias, 
-        "last_hl": last_lows[2] if bias == "bullish" else (last_lows[1] if bias == "terminating_bullish" else None),
-        "last_lh": last_highs[2] if bias == "bearish" else (last_highs[1] if bias == "terminating_bearish" else None)
-    }
+    if current_ema20 > current_ema50:
+        return {"bias": "bullish"}
+    elif current_ema20 < current_ema50:
+        return {"bias": "bearish"}
+    else:
+        return {"bias": "neutral"}
 
 def get_regime_state(df, config):
     """
@@ -86,18 +61,5 @@ def get_regime_state(df, config):
     
     structure = analyze_structure(df)
     bias = structure["bias"]
-    current_close = df.iloc[-1]['close']
-    
-    state = "neutral"
-    if bias == "bullish":
-        if current_close < structure["last_hl"]:
-            state = "neutral"
-        else:
-            state = "bullish"
-    elif bias == "bearish":
-        if current_close > structure["last_lh"]:
-            state = "neutral"
-        else:
-            state = "bearish"
             
-    return {"regime": regime, "bias": state, "atr": current_atr}
+    return {"regime": regime, "bias": bias, "atr": current_atr}

@@ -365,6 +365,13 @@ def run_batch_backtests():
         symbol_ict_trades.extend(tester.ict_trades)
         symbol_sr_trades.extend(tester.sr_trades)
         symbol_scalp_trades.extend(tester.scalp_trades)
+        
+        # Trigger mini-report for the batch
+        batch_total_trades = len(tester.ict_trades) + len(tester.sr_trades) + len(tester.scalp_trades)
+        batch_profit = sum(t['profit'] for t in (tester.ict_trades + tester.sr_trades + tester.scalp_trades))
+        print(f"--- BATCH {batch_num + 1} COMPLETE ---")
+        print(f"Trades Taken: {batch_total_trades}")
+        print(f"Batch Profit: ${batch_profit:.2f}\n")
             
     all_ict_trades.extend(symbol_ict_trades)
     all_sr_trades.extend(symbol_sr_trades)
